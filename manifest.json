@@ -1,0 +1,12 @@
+{
+  "manifest_version": 2,
+  "name": "Netfix",
+  "description": "A ~10s rewind button for Netflix.",
+  "version": "0.0.1",
+  "content_scripts": [
+    {
+      "matches": ["*://*/*"],
+      "js": ["netfix.page.js"]
+    }
+  ]
+}
