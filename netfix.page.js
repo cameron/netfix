@@ -11,11 +11,17 @@ function percentToFloat(perc) {
 function waitFor(selector){
   return new Promise(function(resolve, reject){
     var id = setInterval(function(){
+      console.log('waiting for ' + selector);
       var elem = document.querySelector(selector);
       if (!elem) return;
+      console.log('found ' + selector);
       clearInterval(id);
-      resolve(elem)
+      resolve(elem);
     }, 200);
+
+    setTimeout(function(){
+      clearInterval(id)
+      }, 10000);
   });
 }
 
@@ -41,18 +47,50 @@ function dragTo (elemDrag, x2, y2) {
   fireMouseEvent('mouseup', elemDrag, x2, y2);
 };
 
-function positionBackBtn(btn, controls) {
-  btn.style = 'font-weight: bold; font-size: 4em; position: absolute; z-index: 999; color: rgba(255, 255, 255, .3); top:' + (controls.offsetTop + (controls.offsetHeight/2)) + 'px; left:' + (controls.offsetLeft - 65) + 'px; transform: scaleX(.6); cursor: pointer';
+
+function makeBackBtn(ctrls){
+  var backBtn = document.createElement('div');
+  backBtn.id = 'nf-rewind';
+
+  var backBtnIcon = document.createElement('div');
+  backBtnIcon.innerText = '<<';
+  backBtn.appendChild(backBtnIcon);
+
+  Object.assign(btn.style, {
+    fontWeight: 'bold',
+    fontSize: '4em',
+    position: 'absolute',
+    zIndex: 999,
+    color: 'rgba(255, 255, 255, .3)',
+    left: (-btn.offsetWidth) + 'px',
+    transform: 'scaleX(.6)',
+    cursor: 'pointer',
+    display: 'flexbox',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    height: ctrlBar.offsetHeight + 'px'
+  });
+
+  return backBtn;
 }
 
+// TODO rerun when the URL contains /watch
 waitFor('.player-controls-wrapper').then(wait.bind(null, 200)).then(function(){
+  var ctrls = document.querySelector('.player-controls-wrapper');
+  ctrls.style.position = 'relative';
 
-  var controls = document.querySelector('.player-controls-wrapper');
-  var backBtn = document.createElement('div');
-  backBtn.innerText = '<<';
-  positionBackBtn(backBtn, controls);
-  document.querySelector('#netflix-player').appendChild(backBtn);
-  window.addEventListener('resize', positionBackBtn.bind(null, backBtn, controls));
+  var backBtn = makeBackBtn();
+  var attachBackBtn = ctrls.appendChild.bind(ctrls, backBtn);
+  attachBackBtn();
+  window.addEventListener('resize', positionBackBtn.bind(null, backBtn, ctrlBar));
+
+  var observer = new MutationObserver(function(mutations){
+     if (!document.querySelector('#nf-rewind')){
+      attachBackBtn();
+    }
+  });
+
+  observer.observe(document.body, {subtree: true, childList: true});
 
   var hideBtnTimeoutId;
   function showBtn () {
@@ -65,7 +103,10 @@ waitFor('.player-controls-wrapper').then(wait.bind(null, 200)).then(function(){
   document.addEventListener('mousemove', showBtn);
   showBtn();
 
-  backBtn.addEventListener('click', function(){
+  backBtn.addEventListener('click', rewind);
+  document
+
+  function rewind(){
     var slider = document.querySelector('.player-slider');
     var timeLabel = slider.getElementsByTagName('label')[0];
     var timeComponents = timeLabel.innerText.split(':');
@@ -86,6 +127,6 @@ waitFor('.player-controls-wrapper').then(wait.bind(null, 200)).then(function(){
 
     var scrubber = document.querySelector('.player-scrubber-target');
     dragTo(scrubber,
-           (percentToFloat(scrubber.style.left) * totalPx) - pxPer10s + controls.offsetLeft, 0);
+           (percentToFloat(scrubber.style.left) * totalPx) - pxPer10s + ctrlBar.offsetLeft, 0);
   })
 });
